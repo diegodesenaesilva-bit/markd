@@ -51,3 +51,7 @@ AuthKey_*.p8
 *.exe
 *.msi
 src-tauri/target/
+
+# Tauri signing keys — NUNCA suba a chave privada!
+*.key
+markd-update-key.key.pub
