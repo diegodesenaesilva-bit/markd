@@ -1,58 +1,85 @@
 name: Release Markd
 
-# Dispara quando você cria uma tag de versão, ex: v0.1.7
+# Dispara automaticamente em todo push para main
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - main
 
 jobs:
   release:
     permissions:
       contents: write
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - platform: windows-latest
-            args: '--target x86_64-pc-windows-msvc'
+    runs-on: windows-latest
 
-    runs-on: ${{ matrix.platform }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read version from tauri.conf.json
+        id: version
+        shell: powershell
+        run: |
+          $config = Get-Content src-tauri/tauri.conf.json | ConvertFrom-Json
+          $version = $config.version
+          echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+          echo "TAG=v$version" >> $env:GITHUB_OUTPUT
+
+      - name: Check if tag already exists
+        id: tag_check
+        shell: powershell
+        run: |
+          $tag = "v${{ steps.version.outputs.VERSION }}"
+          $exists = git tag -l $tag
+          if ($exists) {
+            echo "EXISTS=true" >> $env:GITHUB_OUTPUT
+            echo "Tag $tag already exists, skipping release."
+          } else {
+            echo "EXISTS=false" >> $env:GITHUB_OUTPUT
+            echo "Tag $tag does not exist, will create release."
+          }
 
       - name: Setup Node.js
+        if: steps.tag_check.outputs.EXISTS == 'false'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
 
       - name: Install Rust stable
+        if: steps.tag_check.outputs.EXISTS == 'false'
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: x86_64-pc-windows-msvc
 
       - name: Rust cache
+        if: steps.tag_check.outputs.EXISTS == 'false'
         uses: swatinem/rust-cache@v2
         with:
           workspaces: './src-tauri -> target'
 
       - name: Install frontend dependencies
+        if: steps.tag_check.outputs.EXISTS == 'false'
         run: npm install --legacy-peer-deps
 
-      - name: Build and release
+      - name: Build and publish release
+        if: steps.tag_check.outputs.EXISTS == 'false'
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: 'Markd ${{ github.ref_name }}'
+          tagName: v${{ steps.version.outputs.VERSION }}
+          releaseName: 'Markd v${{ steps.version.outputs.VERSION }}'
           releaseBody: |
-            ## O que há de novo nesta versão
-            Veja os commits para detalhes das mudanças.
+            ## Markd v${{ steps.version.outputs.VERSION }}
+
+            Nova versão lançada automaticamente a partir do push no branch `main`.
+
+            Faça o download do instalador abaixo para atualizar.
           releaseDraft: false
           prerelease: false
-          args: ${{ matrix.args }}
+          args: '--target x86_64-pc-windows-msvc'
