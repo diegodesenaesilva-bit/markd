@@ -101,6 +101,7 @@ pub fn run() {
             commands::save_image_asset,
             commands::set_theme,
             commands::get_theme,
+            commands::open_qwen_window,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

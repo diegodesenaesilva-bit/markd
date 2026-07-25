@@ -43,6 +43,7 @@ import {
   MorphPopoverTrigger,
 } from "@/components/motion/popover-morph";
 import { Sidebar } from "./Sidebar";
+import { WindowControls } from "./WindowControls";
 import { CopyButton } from "@/components/ui/CopyButton";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { useBookmarks } from "@/stores/bookmarks";
@@ -153,29 +154,35 @@ export function AppShell() {
       </motion.div>
 
       <main className="relative flex min-w-0 flex-1 flex-col">
-        {/* Row 1 — titlebar: sidebar toggle + open-note tabs. The strip is
-            recessed (panel); the active tab takes the content bg so it reads
-            as merged with the pane below, code-editor style. */}
-        <motion.div
-          data-tauri-drag-region
-          className="flex h-11 shrink-0 items-stretch gap-1.5 bg-sunken pr-3"
-          animate={{ paddingLeft: sidebarHidden ? 84 : 10 }}
-          initial={false}
-          transition={SPRING_PANEL}
-        >
-          <div className="flex shrink-0 items-center">
-            <Tooltip label="Toggle sidebar ⌘\" side="right">
-              <button
-                type="button"
-                onClick={toggleSidebar}
-                className="grid h-7 w-7 place-items-center rounded-md text-faint transition-colors duration-100 hover:bg-hover hover:text-ink"
-              >
-                <PanelLeft size={15.5} strokeWidth={1.75} />
-              </button>
-            </Tooltip>
+        {/* Row 1 — titlebar: sidebar toggle + open-note tabs + window controls.
+            WindowControls sits OUTSIDE the drag region so clicks reach it. */}
+        <div className="relative flex h-11 shrink-0 bg-sunken">
+          <motion.div
+            data-tauri-drag-region
+            className="flex flex-1 items-stretch gap-1.5 pr-[120px]"
+            animate={{ paddingLeft: sidebarHidden ? 84 : 10 }}
+            initial={false}
+            transition={SPRING_PANEL}
+          >
+            <div className="flex shrink-0 items-center">
+              <Tooltip label="Toggle sidebar ⌘\" side="right">
+                <button
+                  type="button"
+                  onClick={toggleSidebar}
+                  className="grid h-7 w-7 place-items-center rounded-md text-faint transition-colors duration-100 hover:bg-hover hover:text-ink"
+                >
+                  <PanelLeft size={15.5} strokeWidth={1.75} />
+                </button>
+              </Tooltip>
+            </div>
+            <TabBar />
+          </motion.div>
+          {/* Window controls positioned absolutely so they are NEVER inside
+              the drag region — this guarantees click events are not swallowed */}
+          <div className="absolute right-0 top-0 bottom-0 flex items-stretch">
+            <WindowControls />
           </div>
-          <TabBar />
-        </motion.div>
+        </div>
 
         {/* Row 2 — current view title + right-side actions. */}
         <div className="flex h-10 bg-transparent shrink-0 items-center px-3">

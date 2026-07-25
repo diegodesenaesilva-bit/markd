@@ -85,6 +85,7 @@ export function MarkdownSourceEditor({
           keymap.of([indentWithTab, ...defaultKeymap, ...historyKeymap]),
           markdown(),
           syntaxHighlighting(markdHighlight),
+          EditorView.contentAttributes.of({ spellcheck: "true", lang: "pt-BR" }),
           EditorView.lineWrapping,
           markdTheme,
           EditorView.updateListener.of((update) => {

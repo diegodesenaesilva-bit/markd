@@ -63,8 +63,8 @@ export function Sidebar() {
       <nav className="flex flex-col gap-0.5 px-2 pb-1">
         <PageLink
           active={view?.type === "todos"}
-          icon={<CheckSquare size={15} strokeWidth={1.75} />}
-          label="Todos"
+          icon={<CheckSquare size={15} strokeWidth={1.75} className="text-red-500" />}
+          label="Tarefas"
           shortcut={shortcuts.openTodos}
           onClick={() => setView({ type: "todos" })}
         />

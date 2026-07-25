@@ -46,3 +46,8 @@ AuthKey_*.p8
 
 # Internal design/research notes — not shipped
 /docs/
+
+# Windows executables and installers (build artifacts — too large for git)
+*.exe
+*.msi
+src-tauri/target/

@@ -3,6 +3,14 @@ import { toast } from "sonner";
 import { ipc } from "@/lib/ipc";
 import type { Todo } from "@/lib/types";
 
+interface AddSmartTodoOptions {
+  text: string;
+  tags?: string[];
+  dueDate?: number | null;
+  projectId?: string | null;
+  parentId?: string | null;
+}
+
 interface TodosState {
   todos: Todo[];
   tagRegistry: string[];
@@ -12,8 +20,11 @@ interface TodosState {
   setTagFilter: (tag: string | null) => void;
   load: () => Promise<void>;
   add: (text: string, tags?: string[]) => Promise<void>;
+  addSmart: (options: AddSmartTodoOptions) => Promise<void>;
   toggle: (id: string) => Promise<void>;
   updateText: (id: string, text: string) => Promise<void>;
+  setDueDate: (id: string, dueDate: number | null) => void;
+  rescheduleOverdueToToday: () => void;
   setTags: (id: string, tags: string[]) => Promise<void>;
   createTag: (name: string) => Promise<void>;
   deleteTag: (name: string) => Promise<void>;
@@ -56,14 +67,40 @@ export const useTodos = create<TodosState>((set, get) => ({
     }
   },
 
+  addSmart: async ({ text, tags, dueDate, projectId, parentId }) => {
+    try {
+      let todo = await ipc.todoAdd(text);
+      const combinedTags = Array.from(new Set([...(tags || [])]));
+      if (combinedTags.length) {
+        todo = await ipc.todoSetTags(todo.id, combinedTags);
+      }
+      todo.dueDate = dueDate;
+      todo.projectId = projectId;
+      todo.parentId = parentId;
+
+      const registry = new Set(get().tagRegistry);
+      combinedTags.forEach((t) => registry.add(t));
+
+      set({
+        todos: [todo, ...get().todos],
+        tagRegistry: [...registry],
+      });
+    } catch (err) {
+      oops(err);
+    }
+  },
+
   toggle: async (id) => {
-    // optimistic — checkbox must feel instant
     set({
       todos: get().todos.map((t) => (t.id === id ? { ...t, done: !t.done } : t)),
     });
     try {
       const updated = await ipc.todoToggle(id);
-      set({ todos: get().todos.map((t) => (t.id === id ? updated : t)) });
+      set({
+        todos: get().todos.map((t) =>
+          t.id === id ? { ...t, ...updated, dueDate: t.dueDate, parentId: t.parentId } : t
+        ),
+      });
     } catch (err) {
       oops(err);
       get().load();
@@ -73,10 +110,35 @@ export const useTodos = create<TodosState>((set, get) => ({
   updateText: async (id, text) => {
     try {
       const updated = await ipc.todoUpdate(id, text);
-      set({ todos: get().todos.map((t) => (t.id === id ? updated : t)) });
+      set({
+        todos: get().todos.map((t) =>
+          t.id === id ? { ...t, ...updated, dueDate: t.dueDate, parentId: t.parentId } : t
+        ),
+      });
     } catch (err) {
       oops(err);
     }
+  },
+
+  setDueDate: (id, dueDate) => {
+    set({
+      todos: get().todos.map((t) => (t.id === id ? { ...t, dueDate } : t)),
+    });
+  },
+
+  rescheduleOverdueToToday: () => {
+    const today = new Date();
+    const todayTs = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+
+    set({
+      todos: get().todos.map((t) => {
+        if (!t.done && t.dueDate && t.dueDate < todayTs) {
+          return { ...t, dueDate: todayTs };
+        }
+        return t;
+      }),
+    });
+    toast.success("Tarefas atrasadas reagendadas para hoje!");
   },
 
   setTags: async (id, tags) => {
@@ -85,7 +147,7 @@ export const useTodos = create<TodosState>((set, get) => ({
       const registry = new Set(get().tagRegistry);
       updated.tags.forEach((t) => registry.add(t));
       set({
-        todos: get().todos.map((t) => (t.id === id ? updated : t)),
+        todos: get().todos.map((t) => (t.id === id ? { ...t, ...updated } : t)),
         tagRegistry: [...registry],
       });
     } catch (err) {
@@ -118,7 +180,7 @@ export const useTodos = create<TodosState>((set, get) => ({
   },
 
   remove: async (id) => {
-    set({ todos: get().todos.filter((t) => t.id !== id) });
+    set({ todos: get().todos.filter((t) => t.id !== id && t.parentId !== id) });
     try {
       await ipc.todoDelete(id);
     } catch (err) {

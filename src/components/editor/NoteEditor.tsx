@@ -38,6 +38,9 @@ import { SelectionMenu } from "./SelectionMenu";
 import { SlashMenu, type SlashMenuState } from "./SlashMenu";
 import { TitleInput } from "./TitleInput";
 import { useNoteFindReplace } from "./useNoteFindReplace";
+import { EditorToolbar } from "./EditorToolbar";
+import { TableToolbar } from "./TableToolbar";
+import { AskMarkSidebar } from "./AskMarkSidebar";
 
 const MarkdownSourceEditor = lazy(() =>
   import("./MarkdownSourceEditor").then((module) => ({
@@ -70,6 +73,7 @@ export const NoteEditor = memo(function NoteEditor({
   const renameEntry = useVault((s) => s.renameEntry);
   const setSaveState = useUi((s) => s.setSaveState);
   const markdownSource = useUi((s) => s.markdownSource);
+  const noteWidth = useUi((s) => s.noteWidth);
 
   const [slashMenu, setSlashMenu] = useState<SlashMenuState | null>(null);
   const [linkPicker, setLinkPicker] = useState<LinkPickerState | null>(null);
@@ -84,6 +88,8 @@ export const NoteEditor = memo(function NoteEditor({
     rel: string;
     markdown: string;
   } | null>(null);
+  const [askMarkOpen, setAskMarkOpen] = useState(false);
+  const [askMarkSelectedText, setAskMarkSelectedText] = useState("");
 
   const relRef = useRef(rel);
   // Frontmatter of the loaded note, kept out of the editor and re-attached on
@@ -188,10 +194,10 @@ export const NoteEditor = memo(function NoteEditor({
       editorProps: {
         attributes: {
           class: "prose-note",
-          autoCapitalize: "off",
-          autoCorrect: "off",
-          spellCheck: "false",
-          "data-gramm": "false",
+          autoCapitalize: "sentences",
+          autoCorrect: "on",
+          spellCheck: "true",
+          lang: "pt-BR",
         },
         handleKeyDown(view, event) {
           if (event.defaultPrevented || event.key !== "Tab") return false;
@@ -721,121 +727,167 @@ export const NoteEditor = memo(function NoteEditor({
     setLinkPicker(null);
   };
 
+  const handleOpenAskMark = useCallback(() => {
+    if (!editor) return;
+    const { from, to } = editor.state.selection;
+    const text = editor.state.doc.textBetween(from, to, " ");
+    setAskMarkSelectedText(text);
+    setAskMarkOpen(true);
+  }, [editor]);
+
+  const handleInsertAiResult = (resultText: string, replaceSelection: boolean) => {
+    if (!editor) return;
+    if (replaceSelection && !editor.state.selection.empty) {
+      editor.chain().focus().insertContent(resultText).run();
+    } else {
+      editor.chain().focus().insertContent("\n\n" + resultText + "\n\n").run();
+    }
+  };
+
   return (
-    <div
-      ref={scrollRef}
-      data-note-editor={active ? "active" : undefined}
-      className="page-scroll relative"
-      onScroll={(event) => {
-        savedScroll.current = event.currentTarget.scrollTop;
-      }}
-    >
-      {active && !missing && noteFind.open && (
-        <div className="pointer-events-none sticky top-3 z-40 h-0 px-4">
-          <div className="pointer-events-auto ml-auto w-fit">
-            <FindReplaceBar
-              query={noteFind.query}
-              replaceText={noteFind.replaceText}
-              replaceOpen={noteFind.replaceOpen}
-              current={noteFind.current}
-              total={noteFind.total}
-              onQueryChange={noteFind.setQuery}
-              onReplaceTextChange={noteFind.setReplaceText}
-              onReplaceOpenChange={noteFind.setReplaceOpen}
-              onPrevious={noteFind.previous}
-              onNext={noteFind.next}
-              onReplace={noteFind.replaceCurrent}
-              onReplaceAll={noteFind.replaceAll}
-              onClose={noteFind.closeFind}
-            />
+    <div className="flex h-full w-full overflow-hidden relative">
+      <div
+        ref={scrollRef}
+        data-note-editor={active ? "active" : undefined}
+        className="page-scroll relative flex-1 overflow-y-auto"
+        onScroll={(event) => {
+          savedScroll.current = event.currentTarget.scrollTop;
+        }}
+      >
+        {active && !missing && noteFind.open && (
+          <div className="pointer-events-none sticky top-3 z-40 h-0 px-4">
+            <div className="pointer-events-auto ml-auto w-fit">
+              <FindReplaceBar
+                query={noteFind.query}
+                replaceText={noteFind.replaceText}
+                replaceOpen={noteFind.replaceOpen}
+                current={noteFind.current}
+                total={noteFind.total}
+                onQueryChange={noteFind.setQuery}
+                onReplaceTextChange={noteFind.setReplaceText}
+                onReplaceOpenChange={noteFind.setReplaceOpen}
+                onPrevious={noteFind.previous}
+                onNext={noteFind.next}
+                onReplace={noteFind.replaceCurrent}
+                onReplaceAll={noteFind.replaceAll}
+                onClose={noteFind.closeFind}
+              />
+            </div>
           </div>
-        </div>
-      )}
-      <div className="mx-auto w-full max-w-[720px] px-10 pt-6">
-        {missing ? (
-          <p className="pt-16 text-center text-[14px] text-faint">
-            This note no longer exists.
-          </p>
-        ) : (
-          <TitleInput
-            key={rel}
-            title={noteTitle(rel)}
-            focusNonce={
-              titleFocusReq?.rel === rel ? titleFocusReq.nonce : undefined
-            }
-            onEnter={() => editor?.commands.focus("start")}
-            onRename={(name) => flushThen(() => renameEntry(rel, name))}
+        )}
+        {active && editor && !markdownSource && !missing && (
+          <EditorToolbar
+            editor={editor}
+            onOpenAskMark={handleOpenAskMark}
+            isAskMarkOpen={askMarkOpen}
           />
         )}
-        <div className={cx(missing && "hidden")}>
-          {markdownSource ? (
-            <Suspense fallback={null}>
-              <MarkdownSourceEditor
-                value={rawText}
-                onChange={applyRawTextChange}
-                selection={noteFind.sourceSelection}
-              />
-            </Suspense>
+        {active && editor && !markdownSource && editor.isActive("table") && (
+          <div className="sticky top-[44px] z-20 flex justify-center pb-0.5 pointer-events-none">
+            <div className="pointer-events-auto">
+              <TableToolbar editor={editor} />
+            </div>
+          </div>
+        )}
+        <div
+          className={cx(
+            "mx-auto w-full px-10 pt-6 transition-all duration-300",
+            noteWidth === "focused" ? "max-w-[620px]" : noteWidth === "expanded" ? "max-w-full" : "max-w-[760px]"
+          )}
+        >
+          {missing ? (
+            <p className="pt-16 text-center text-[14px] text-faint">
+              This note no longer exists.
+            </p>
           ) : (
-            <>
-              <NoteProperties
-                properties={properties}
-                addRequest={propertyAddRequest}
-                onAddRequestHandled={consumePropertyAddRequest}
-                onUpsert={upsertProperty}
-                onRemove={removeProperty}
-              />
-              <EditorContent editor={editor} />
-            </>
+            <TitleInput
+              key={rel}
+              title={noteTitle(rel)}
+              focusNonce={
+                titleFocusReq?.rel === rel ? titleFocusReq.nonce : undefined
+              }
+              onEnter={() => editor?.commands.focus("start")}
+              onRename={(name) => flushThen(() => renameEntry(rel, name))}
+            />
+          )}
+          <div className={cx(missing && "hidden")}>
+            {markdownSource ? (
+              <Suspense fallback={null}>
+                <MarkdownSourceEditor
+                  value={rawText}
+                  onChange={applyRawTextChange}
+                  selection={noteFind.sourceSelection}
+                />
+              </Suspense>
+            ) : (
+              <>
+                <NoteProperties
+                  properties={properties}
+                  addRequest={propertyAddRequest}
+                  onAddRequestHandled={consumePropertyAddRequest}
+                  onUpsert={upsertProperty}
+                  onRemove={removeProperty}
+                />
+                <EditorContent editor={editor} />
+              </>
+            )}
+          </div>
+          {active && editor && !markdownSource && !noteFind.open && (
+            <SelectionMenu editor={editor} />
+          )}
+          {active && !markdownSource && (
+            <SlashMenu
+              editor={editor}
+              menu={slashMenu}
+              onClose={() => setSlashMenu(null)}
+              onLinkToNote={(range) => {
+                if (slashMenu) {
+                  setLinkPicker({
+                    range,
+                    position: slashMenu.position,
+                    side: slashMenu.side,
+                  });
+                }
+                setSlashMenu(null);
+              }}
+            />
+          )}
+          {active && !markdownSource && linkPicker && (
+            <NoteLinkPicker
+              state={linkPicker}
+              currentRel={rel}
+              onPick={insertNoteLink}
+              onClose={() => setLinkPicker(null)}
+            />
           )}
         </div>
-        {active && editor && !markdownSource && !noteFind.open && (
-          <SelectionMenu editor={editor} />
+        {active && (
+          <div
+            className={cx(
+              "pointer-events-none absolute bottom-3 right-4 text-[11px] tabular-nums text-faint transition-opacity duration-300",
+              (words === 0 || missing) && "opacity-0",
+            )}
+          >
+            {words} {words === 1 ? "word" : "words"}
+          </div>
         )}
-        {active && !markdownSource && (
-          <SlashMenu
-            editor={editor}
-            menu={slashMenu}
-            onClose={() => setSlashMenu(null)}
-            onLinkToNote={(range) => {
-              if (slashMenu) {
-                setLinkPicker({
-                  range,
-                  position: slashMenu.position,
-                  side: slashMenu.side,
-                });
-              }
-              setSlashMenu(null);
-            }}
-          />
-        )}
-        {active && !markdownSource && linkPicker && (
-          <NoteLinkPicker
-            state={linkPicker}
-            currentRel={rel}
-            onPick={insertNoteLink}
-            onClose={() => setLinkPicker(null)}
+        {active && publishSnapshot && (
+          <PublishNoteModal
+            open
+            rel={publishSnapshot.rel}
+            markdown={publishSnapshot.markdown}
+            onClose={() => setPublishSnapshot(null)}
           />
         )}
       </div>
-      {active && (
-        <div
-          className={cx(
-            "pointer-events-none absolute bottom-3 right-4 text-[11px] tabular-nums text-faint transition-opacity duration-300",
-            (words === 0 || missing) && "opacity-0",
-          )}
-        >
-          {words} {words === 1 ? "word" : "words"}
-        </div>
-      )}
-      {active && publishSnapshot && (
-        <PublishNoteModal
-          open
-          rel={publishSnapshot.rel}
-          markdown={publishSnapshot.markdown}
-          onClose={() => setPublishSnapshot(null)}
-        />
-      )}
+      <AskMarkSidebar
+        isOpen={askMarkOpen}
+        onClose={() => setAskMarkOpen(false)}
+        selectedText={askMarkSelectedText}
+        noteTitle={noteTitle(rel)}
+        noteContent={editor ? editor.getMarkdown() : rawText}
+        onInsertResult={handleInsertAiResult}
+      />
     </div>
   );
 });

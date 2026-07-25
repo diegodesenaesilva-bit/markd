@@ -2,6 +2,8 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 import Image from "@tiptap/extension-image";
 import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
+import TextAlign from "@tiptap/extension-text-align";
+import Highlight from "@tiptap/extension-highlight";
 import { Markdown } from "@tiptap/markdown";
 import { Table } from "@tiptap/extension-table";
 import TableCell from "@tiptap/extension-table-cell";
@@ -17,7 +19,7 @@ import { WikiLink } from "./wikiLink";
 import { textColorExtensions } from "./textColors";
 
 function isRemoteSource(src: string) {
-  return /^(?:[a-z][a-z0-9+.-]*:|#|\/)/i.test(src);
+  return /^(?:[a-z][a-z0-9+.\-]*:|#|\/)/.test(src);
 }
 
 /**
@@ -66,14 +68,13 @@ export function createExtensions(vaultRoot: string) {
     CodeBlockWithCopy,
     Underline,
     Typography,
+    Highlight.configure({ multicolor: false }),
+    TextAlign.configure({ types: ["heading", "paragraph"] }),
     Link.configure({
       autolink: true,
       defaultProtocol: "https",
       openOnClick: false,
       protocols: ["http", "https", "mailto"],
-      // Keep relative hrefs (our internal page links, e.g. "projects/app.md").
-      // Without this the default sanitizer resolves them against the app's
-      // tauri:// origin and strips them. External URLs still get validated.
       isAllowedUri: (uri, ctx) => {
         if (!/^[a-z][a-z0-9+.-]*:/i.test(uri) && !uri.startsWith("//")) {
           return true;
@@ -84,11 +85,11 @@ export function createExtensions(vaultRoot: string) {
     VaultImage(vaultRoot).configure({ allowBase64: true, inline: false }),
     TaskList,
     TaskItem.configure({ nested: true }),
-    Table.configure({ resizable: false }),
+    Table.configure({ resizable: true }),
     TableRow,
     TableHeader,
     TableCell,
-    Placeholder.configure({ placeholder: "Write, or press / for blocks…" }),
+    Placeholder.configure({ placeholder: "Escreva, ou pressione / para blocos…" }),
     WikiLink,
   ];
 }

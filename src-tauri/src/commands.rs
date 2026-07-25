@@ -551,3 +551,28 @@ pub fn set_theme(app: AppHandle, theme: Theme) -> AppResult<()> {
 pub fn get_theme(app: AppHandle) -> Theme {
     config::load(&app).theme
 }
+
+#[tauri::command]
+pub fn open_qwen_window(app: AppHandle) -> AppResult<()> {
+    if let Some(win) = app.get_webview_window("qwen-chat-window") {
+        let _ = win.show();
+        let _ = win.set_focus();
+        return Ok(());
+    }
+
+    let url = tauri::Url::parse("https://chat.qwen.ai/").map_err(|e| AppError::Other(e.to_string()))?;
+    let builder = tauri::WebviewWindowBuilder::new(
+        &app,
+        "qwen-chat-window",
+        tauri::WebviewUrl::External(url),
+    )
+    .title("Qwen Chat (Oficial)")
+    .inner_size(560.0, 780.0)
+    .center()
+    .always_on_top(true)
+    .resizable(true);
+
+    let _ = builder.build().map_err(|e| AppError::Other(e.to_string()))?;
+
+    Ok(())
+}

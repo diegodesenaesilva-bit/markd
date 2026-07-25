@@ -25,6 +25,10 @@ export interface Todo {
   createdAt: number;
   completedAt: number | null;
   tags: string[];
+  dueDate?: number | null;
+  projectId?: string | null;
+  parentId?: string | null;
+  priority?: "p1" | "p2" | "p3" | "p4";
 }
 
 export interface Bookmark {

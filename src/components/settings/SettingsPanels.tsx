@@ -56,6 +56,9 @@ const THEMES: Array<{
   },
 ];
 
+import { useAiStore } from "@/stores/ai";
+import { testOnlineAiConnection } from "@/lib/ai";
+
 export function GeneralSettings() {
   const root = useVault((state) => state.root);
   const chooseVault = useVault((state) => state.chooseVault);
@@ -65,6 +68,68 @@ export function GeneralSettings() {
   const requestInstall = useUpdater((state) => state.requestInstall);
   const setSettingsOpen = useUi((state) => state.setSettingsOpen);
 
+  const {
+    activeProvider,
+    setActiveProvider,
+    geminiApiKey,
+    setGeminiApiKey,
+    groqApiKey,
+    setGroqApiKey,
+    openaiApiKey,
+    setOpenaiApiKey,
+    claudeApiKey,
+    setClaudeApiKey,
+    qwenApiKey,
+    setQwenApiKey,
+    ollamaCloudApiKey,
+    setOllamaCloudApiKey,
+    geminiModel,
+    setGeminiModel,
+    groqModel,
+    setGroqModel,
+    openaiModel,
+    setOpenaiModel,
+    claudeModel,
+    setClaudeModel,
+    qwenModel,
+    setQwenModel,
+    ollamaCloudUrl,
+    setOllamaCloudUrl,
+    ollamaCloudModel,
+    setOllamaCloudModel,
+  } = useAiStore();
+
+  const [testingAi, setTestingAi] = useState(false);
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [savedProvider, setSavedProvider] = useState(false);
+
+  const handleSaveAll = () => {
+    setSavedProvider(true);
+    toast.success("Configurações de IA salvas com sucesso!");
+    setTimeout(() => setSavedProvider(false), 2000);
+  };
+
+  const handleTestConnection = async () => {
+    setTestingAi(true);
+    setTestResult(null);
+    try {
+      const response = await testOnlineAiConnection();
+      setTestResult({
+        success: true,
+        message: `✓ Conexão Estabelecida com Sucesso! Resposta da IA: "${response.trim()}"`,
+      });
+      toast.success("Conexão com a IA estabelecida com sucesso!");
+    } catch (err: any) {
+      setTestResult({
+        success: false,
+        message: err.message || "Erro desconhecido ao testar conexão.",
+      });
+      toast.error("Falha ao testar conexão com a IA.");
+    } finally {
+      setTestingAi(false);
+    }
+  };
+
   const updateCopy =
     updateStatus === "available"
       ? `Version ${updateVersion} is available`
@@ -72,10 +137,333 @@ export function GeneralSettings() {
         ? "Installing…"
         : updateStatus === "checking"
           ? "Checking for updates…"
-          : "You're on the latest version";
+          : `You're on version ${updateVersion || "0.1.6"}`;
 
   return (
     <div className="space-y-6">
+      <SettingsGroup
+        title="Peça ao Mark ✨ (Assistente de IA 100% Online)"
+        description="Escolha qual motor de inteligência artificial na nuvem você deseja usar como cérebro do programa."
+      >
+        <div className="space-y-4 rounded-xl bg-panel p-4">
+          {/* Online Provider Selection Grid */}
+          <div className="flex flex-col gap-2">
+            <label className="text-[12px] font-medium text-muted">Selecione o Provedor de IA Online:</label>
+            <div className="grid grid-cols-3 gap-2">
+              {/* Ollama Cloud */}
+              <button
+                type="button"
+                onClick={() => { setActiveProvider("ollama_cloud"); setTestResult(null); }}
+                className={`rounded-xl border p-3 text-left transition-all ${
+                  activeProvider === "ollama_cloud"
+                    ? "border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold"
+                    : "border-line bg-bg text-ink hover:bg-hover"
+                }`}
+              >
+                <div className="text-xs flex items-center gap-1">☁️ Ollama Cloud</div>
+                <div className="text-[10px] text-faint font-normal mt-0.5">ollama.com/settings/keys</div>
+              </button>
+
+              {/* Google Gemini */}
+              <button
+                type="button"
+                onClick={() => { setActiveProvider("gemini"); setTestResult(null); }}
+                className={`rounded-xl border p-3 text-left transition-all ${
+                  activeProvider === "gemini"
+                    ? "border-blue-500 bg-blue-500/10 text-blue-600 dark:text-blue-400 font-semibold"
+                    : "border-line bg-bg text-ink hover:bg-hover"
+                }`}
+              >
+                <div className="text-xs flex items-center gap-1">🌐 Google Gemini</div>
+                <div className="text-[10px] text-faint font-normal mt-0.5">Grátis &amp; Rápido</div>
+              </button>
+
+              {/* Groq */}
+              <button
+                type="button"
+                onClick={() => { setActiveProvider("groq"); setTestResult(null); }}
+                className={`rounded-xl border p-3 text-left transition-all ${
+                  activeProvider === "groq"
+                    ? "border-orange-500 bg-orange-500/10 text-orange-600 dark:text-orange-400 font-semibold"
+                    : "border-line bg-bg text-ink hover:bg-hover"
+                }`}
+              >
+                <div className="text-xs flex items-center gap-1">⚡ Groq (Llama 3.3)</div>
+                <div className="text-[10px] text-faint font-normal mt-0.5">Ultra Rápido (Grátis)</div>
+              </button>
+
+              {/* OpenAI ChatGPT */}
+              <button
+                type="button"
+                onClick={() => { setActiveProvider("openai"); setTestResult(null); }}
+                className={`rounded-xl border p-3 text-left transition-all ${
+                  activeProvider === "openai"
+                    ? "border-green-500 bg-green-500/10 text-green-600 dark:text-green-400 font-semibold"
+                    : "border-line bg-bg text-ink hover:bg-hover"
+                }`}
+              >
+                <div className="text-xs flex items-center gap-1">🟢 OpenAI ChatGPT</div>
+                <div className="text-[10px] text-faint font-normal mt-0.5">GPT-4o &amp; GPT-4o-mini</div>
+              </button>
+
+              {/* Anthropic Claude */}
+              <button
+                type="button"
+                onClick={() => { setActiveProvider("claude"); setTestResult(null); }}
+                className={`rounded-xl border p-3 text-left transition-all ${
+                  activeProvider === "claude"
+                    ? "border-purple-500 bg-purple-500/10 text-purple-600 dark:text-purple-400 font-semibold"
+                    : "border-line bg-bg text-ink hover:bg-hover"
+                }`}
+              >
+                <div className="text-xs flex items-center gap-1">🎭 Anthropic Claude</div>
+                <div className="text-[10px] text-faint font-normal mt-0.5">Claude 3.5 Sonnet</div>
+              </button>
+
+              {/* Qwen Cloud */}
+              <button
+                type="button"
+                onClick={() => { setActiveProvider("qwen"); setTestResult(null); }}
+                className={`rounded-xl border p-3 text-left transition-all ${
+                  activeProvider === "qwen"
+                    ? "border-indigo-500 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-semibold"
+                    : "border-line bg-bg text-ink hover:bg-hover"
+                }`}
+              >
+                <div className="text-xs flex items-center gap-1">☁️ Qwen Cloud</div>
+                <div className="text-[10px] text-faint font-normal mt-0.5">Alibaba Qwen Max</div>
+              </button>
+            </div>
+          </div>
+
+          {/* Configuration Inputs for Active Provider */}
+          <div className="pt-2 space-y-3 border-t border-line/50">
+            {activeProvider === "ollama_cloud" && (
+              <>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[12px] font-medium text-muted">Chave da API do Ollama Cloud:</label>
+                  <input
+                    type="password"
+                    value={ollamaCloudApiKey}
+                    onChange={(e) => setOllamaCloudApiKey(e.target.value)}
+                    placeholder="Cole sua API Key gerada no ollama.com/settings/keys"
+                    className="w-full rounded-lg border border-line bg-bg px-3 py-1.5 text-xs text-ink outline-none focus:border-emerald-500 placeholder:text-faint"
+                  />
+                  <p className="text-[11px] text-faint">
+                    Obtenha ou adicione sua chave de acesso no painel do{" "}
+                    <a href="https://ollama.com/settings/keys" target="_blank" rel="noreferrer" className="text-emerald-500 underline">
+                      ollama.com/settings/keys
+                    </a>.
+                  </p>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[12px] font-medium text-muted">URL do Servidor Ollama Cloud:</label>
+                  <input
+                    type="text"
+                    value={ollamaCloudUrl}
+                    onChange={(e) => setOllamaCloudUrl(e.target.value)}
+                    placeholder="https://ollama.com"
+                    className="w-full rounded-lg border border-line bg-bg px-3 py-1.5 text-xs text-ink outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[12px] font-medium text-muted">Modelo de IA do Ollama Cloud:</label>
+                  <select
+                    value={ollamaCloudModel}
+                    onChange={(e) => setOllamaCloudModel(e.target.value)}
+                    className="rounded-lg border border-line bg-bg px-3 py-1.5 text-xs text-ink outline-none focus:border-emerald-500"
+                  >
+                    <option value="qwen2.5">qwen2.5 (Recomendado)</option>
+                    <option value="llama3.3">llama3.3 (Llama 3.3 70B)</option>
+                    <option value="deepseek-r1">deepseek-r1 (DeepSeek R1)</option>
+                    <option value="mistral">mistral (Mistral 7B)</option>
+                  </select>
+                </div>
+              </>
+            )}
+
+            {activeProvider === "gemini" && (
+              <>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[12px] font-medium text-muted">Chave da API do Google Gemini:</label>
+                  <input
+                    type="password"
+                    value={geminiApiKey}
+                    onChange={(e) => setGeminiApiKey(e.target.value)}
+                    placeholder="Cole sua API Key do Google AI Studio (AIzaSy...)"
+                    className="w-full rounded-lg border border-line bg-bg px-3 py-1.5 text-xs text-ink outline-none focus:border-blue-500 placeholder:text-faint"
+                  />
+                  <p className="text-[11px] text-faint">
+                    Obtenha uma chave gratuita no{" "}
+                    <a href="https://aistudio.google.com/" target="_blank" rel="noreferrer" className="text-blue-500 underline">
+                      Google AI Studio
+                    </a>.
+                  </p>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[12px] font-medium text-muted">Modelo do Gemini:</label>
+                  <select
+                    value={geminiModel}
+                    onChange={(e) => setGeminiModel(e.target.value)}
+                    className="rounded-lg border border-line bg-bg px-3 py-1.5 text-xs text-ink outline-none focus:border-blue-500"
+                  >
+                    <option value="gemini-1.5-flash">Gemini 1.5 Flash (Recomendado - Ultra Rápido)</option>
+                    <option value="gemini-1.5-pro">Gemini 1.5 Pro (Mais Inteligente)</option>
+                  </select>
+                </div>
+              </>
+            )}
+
+            {activeProvider === "groq" && (
+              <>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[12px] font-medium text-muted">Chave da API do Groq (gsk_...):</label>
+                  <input
+                    type="password"
+                    value={groqApiKey}
+                    onChange={(e) => setGroqApiKey(e.target.value)}
+                    placeholder="Cole sua API Key do Groq aqui (gsk_...)"
+                    className="w-full rounded-lg border border-line bg-bg px-3 py-1.5 text-xs text-ink outline-none focus:border-orange-500 placeholder:text-faint"
+                  />
+                  <p className="text-[11px] text-faint">
+                    Obtenha sua chave gratuita no{" "}
+                    <a href="https://console.groq.com/keys" target="_blank" rel="noreferrer" className="text-orange-500 underline">
+                      Console da Groq
+                    </a>.
+                  </p>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[12px] font-medium text-muted">Modelo da Groq:</label>
+                  <select
+                    value={groqModel}
+                    onChange={(e) => setGroqModel(e.target.value)}
+                    className="rounded-lg border border-line bg-bg px-3 py-1.5 text-xs text-ink outline-none focus:border-orange-500"
+                  >
+                    <option value="llama-3.3-70b-versatile">Llama 3.3 70B Versatile (Recomendado)</option>
+                    <option value="llama3-8b-8192">Llama 3 8B (Ultra Rápido)</option>
+                    <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>
+                  </select>
+                </div>
+              </>
+            )}
+
+            {activeProvider === "openai" && (
+              <>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[12px] font-medium text-muted">Chave da API da OpenAI (sk-...):</label>
+                  <input
+                    type="password"
+                    value={openaiApiKey}
+                    onChange={(e) => setOpenaiApiKey(e.target.value)}
+                    placeholder="Cole sua API Key da OpenAI (sk-...)"
+                    className="w-full rounded-lg border border-line bg-bg px-3 py-1.5 text-xs text-ink outline-none focus:border-green-500 placeholder:text-faint"
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[12px] font-medium text-muted">Modelo da OpenAI:</label>
+                  <select
+                    value={openaiModel}
+                    onChange={(e) => setOpenaiModel(e.target.value)}
+                    className="rounded-lg border border-line bg-bg px-3 py-1.5 text-xs text-ink outline-none focus:border-green-500"
+                  >
+                    <option value="gpt-4o-mini">GPT-4o Mini (Econômico &amp; Rápido)</option>
+                    <option value="gpt-4o">GPT-4o (Mais Poderoso)</option>
+                  </select>
+                </div>
+              </>
+            )}
+
+            {activeProvider === "claude" && (
+              <>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[12px] font-medium text-muted">Chave da API da Anthropic Claude (sk-ant-...):</label>
+                  <input
+                    type="password"
+                    value={claudeApiKey}
+                    onChange={(e) => setClaudeApiKey(e.target.value)}
+                    placeholder="Cole sua API Key do Claude (sk-ant-...)"
+                    className="w-full rounded-lg border border-line bg-bg px-3 py-1.5 text-xs text-ink outline-none focus:border-purple-500 placeholder:text-faint"
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[12px] font-medium text-muted">Modelo do Claude:</label>
+                  <select
+                    value={claudeModel}
+                    onChange={(e) => setClaudeModel(e.target.value)}
+                    className="rounded-lg border border-line bg-bg px-3 py-1.5 text-xs text-ink outline-none focus:border-purple-500"
+                  >
+                    <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet (Excelente)</option>
+                    <option value="claude-3-5-haiku-20241022">Claude 3.5 Haiku (Mais Rápido)</option>
+                  </select>
+                </div>
+              </>
+            )}
+
+            {activeProvider === "qwen" && (
+              <>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[12px] font-medium text-muted">Chave da API do Qwen Cloud (sk-...):</label>
+                  <input
+                    type="password"
+                    value={qwenApiKey}
+                    onChange={(e) => setQwenApiKey(e.target.value)}
+                    placeholder="Cole sua API Key do Qwen (sk-...)"
+                    className="w-full rounded-lg border border-line bg-bg px-3 py-1.5 text-xs text-ink outline-none focus:border-indigo-500 placeholder:text-faint"
+                  />
+                  <p className="text-[11px] text-faint">
+                    Obtenha sua chave no{" "}
+                    <a href="https://modelstudio.console.alibabacloud.com/" target="_blank" rel="noreferrer" className="text-indigo-500 underline">
+                      Alibaba Cloud / DashScope Console
+                    </a>.
+                  </p>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[12px] font-medium text-muted">Modelo do Qwen Cloud:</label>
+                  <select
+                    value={qwenModel}
+                    onChange={(e) => setQwenModel(e.target.value)}
+                    className="rounded-lg border border-line bg-bg px-3 py-1.5 text-xs text-ink outline-none focus:border-indigo-500"
+                  >
+                    <option value="qwen-max">Qwen-Max (Mais Poderoso)</option>
+                    <option value="qwen-plus">Qwen-Plus (Equilibrado)</option>
+                    <option value="qwen-turbo">Qwen-Turbo (Ultra Rápido)</option>
+                  </select>
+                </div>
+              </>
+            )}
+
+            {/* Test Result Banner */}
+            {testResult && (
+              <div
+                className={`rounded-xl border p-3 text-xs leading-relaxed ${
+                  testResult.success
+                    ? "border-green-500/30 bg-green-500/10 text-green-600 dark:text-green-300"
+                    : "border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-300"
+                }`}
+              >
+                {testResult.message}
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="grid grid-cols-2 gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={testingAi}
+                onClick={handleTestConnection}
+                className="bg-bg shrink-0 text-xs"
+              >
+                {testingAi ? "Testando..." : "🧪 Testar Conexão da IA"}
+              </Button>
+              <Button onClick={handleSaveAll} size="sm" className="bg-purple-600 text-white shrink-0 text-xs hover:bg-purple-700">
+                {savedProvider ? "Salvo com Sucesso! ✓" : "Salvar Configurações"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </SettingsGroup>
       <SettingsGroup
         title="Vault"
         description="The folder Markd uses for notes and local app data."
