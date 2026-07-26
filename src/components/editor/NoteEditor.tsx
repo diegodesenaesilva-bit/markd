@@ -40,7 +40,6 @@ import { TitleInput } from "./TitleInput";
 import { useNoteFindReplace } from "./useNoteFindReplace";
 import { EditorToolbar } from "./EditorToolbar";
 import { TableToolbar } from "./TableToolbar";
-import { AskMarkSidebar } from "./AskMarkSidebar";
 
 const MarkdownSourceEditor = lazy(() =>
   import("./MarkdownSourceEditor").then((module) => ({
@@ -88,8 +87,6 @@ export const NoteEditor = memo(function NoteEditor({
     rel: string;
     markdown: string;
   } | null>(null);
-  const [askMarkOpen, setAskMarkOpen] = useState(false);
-  const [askMarkSelectedText, setAskMarkSelectedText] = useState("");
 
   const relRef = useRef(rel);
   // Frontmatter of the loaded note, kept out of the editor and re-attached on
@@ -728,21 +725,23 @@ export const NoteEditor = memo(function NoteEditor({
   };
 
   const handleOpenAskMark = useCallback(() => {
-    if (!editor) return;
-    const { from, to } = editor.state.selection;
-    const text = editor.state.doc.textBetween(from, to, " ");
-    setAskMarkSelectedText(text);
-    setAskMarkOpen(true);
-  }, [editor]);
+    useUi.getState().openAskMark();
+  }, []);
 
-  const handleInsertAiResult = (resultText: string, replaceSelection: boolean) => {
-    if (!editor) return;
-    if (replaceSelection && !editor.state.selection.empty) {
-      editor.chain().focus().insertContent(resultText).run();
-    } else {
-      editor.chain().focus().insertContent("\n\n" + resultText + "\n\n").run();
-    }
-  };
+  useEffect(() => {
+    const handleAiInsert = (e: Event) => {
+      const customEvent = e as CustomEvent<{ text: string; replaceSelection: boolean }>;
+      if (!active || !editor) return;
+      const { text, replaceSelection } = customEvent.detail;
+      if (replaceSelection && !editor.state.selection.empty) {
+        editor.chain().focus().insertContent(text).run();
+      } else {
+        editor.chain().focus().insertContent("\n\n" + text + "\n\n").run();
+      }
+    };
+    window.addEventListener("markd:ai-insert", handleAiInsert);
+    return () => window.removeEventListener("markd:ai-insert", handleAiInsert);
+  }, [active, editor]);
 
   return (
     <div className="flex h-full w-full overflow-hidden relative">
@@ -779,7 +778,7 @@ export const NoteEditor = memo(function NoteEditor({
           <EditorToolbar
             editor={editor}
             onOpenAskMark={handleOpenAskMark}
-            isAskMarkOpen={askMarkOpen}
+            isAskMarkOpen={false}
           />
         )}
         {active && editor && !markdownSource && editor.isActive("table") && (
@@ -880,14 +879,6 @@ export const NoteEditor = memo(function NoteEditor({
           />
         )}
       </div>
-      <AskMarkSidebar
-        isOpen={askMarkOpen}
-        onClose={() => setAskMarkOpen(false)}
-        selectedText={askMarkSelectedText}
-        noteTitle={noteTitle(rel)}
-        noteContent={editor ? editor.getMarkdown() : rawText}
-        onInsertResult={handleInsertAiResult}
-      />
     </div>
   );
 });

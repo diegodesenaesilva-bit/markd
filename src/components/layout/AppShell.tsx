@@ -432,6 +432,11 @@ export function AppShell() {
         activeTab={rightSidebarTab}
         onTabChange={setRightSidebarTab}
         onClose={() => setRightSidebarOpen(false)}
+        onInsertResult={(text, replaceSelection) => {
+          window.dispatchEvent(
+            new CustomEvent("markd:ai-insert", { detail: { text, replaceSelection } }),
+          );
+        }}
       />
     </div>
   );
