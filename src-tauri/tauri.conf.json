@@ -106,7 +106,7 @@
     "updater": {
       "active": true,
       "endpoints": [
-        "https://github.com/diegodesenaesilva-bit/markd/releases/latest/download/latest.json"
+        "https://diegodesenaesilva-bit.github.io/markd/latest.json"
       ],
       "dialog": false,
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDI5MUE4Q0MxMjI1QTcyREMKUldUY2Nsb2l3WXdhS2FFd1BBV3RTdDl0bFVoM3ViSGhZOWVadWJ3TGNMWmsvZnBJMkhocS91QW8K"

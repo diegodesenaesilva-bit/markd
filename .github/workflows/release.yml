@@ -1,6 +1,5 @@
-name: Release Markd
+name: Release Markd (Private Repo via GitHub Pages)
 
-# Dispara automaticamente em todo push para main
 on:
   push:
     branches:
@@ -8,10 +7,11 @@ on:
 
 jobs:
   release:
-    # Evita rodar em commits de bump de versão feitos pelo próprio workflow
     if: "!contains(github.event.head_commit.message, '[skip ci]')"
     permissions:
       contents: write
+      pages: write
+      id-token: write
     runs-on: windows-latest
 
     steps:
@@ -26,13 +26,11 @@ jobs:
         with:
           node-version: '20'
 
-      # Lê a versão atual, incrementa o patch (ex: 0.1.6 → 0.1.7) e
-      # atualiza tauri.conf.json, package.json e Cargo.toml
+      # Auto-incrementa versão patch (ex: 0.1.6 → 0.1.7)
       - name: Bump patch version
         id: bump
         shell: powershell
         run: |
-          # Lê versão atual do tauri.conf.json
           $config = Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json
           $current = $config.version
           $parts = $current.Split('.')
@@ -43,17 +41,14 @@ jobs:
 
           Write-Host "Bumping version: $current → $newVersion"
 
-          # Atualiza tauri.conf.json
           $raw = Get-Content src-tauri/tauri.conf.json -Raw
           $raw = $raw -replace '"version": "' + $current + '"', '"version": "' + $newVersion + '"'
           Set-Content src-tauri/tauri.conf.json $raw -NoNewline
 
-          # Atualiza package.json
           $pkg = Get-Content package.json -Raw
           $pkg = $pkg -replace '"version": "' + $current + '"', '"version": "' + $newVersion + '"'
           Set-Content package.json $pkg -NoNewline
 
-          # Atualiza Cargo.toml
           $cargo = Get-Content src-tauri/Cargo.toml -Raw
           $cargo = $cargo -replace 'version = "' + $current + '"', 'version = "' + $newVersion + '"'
           Set-Content src-tauri/Cargo.toml $cargo -NoNewline
@@ -83,8 +78,9 @@ jobs:
       - name: Install frontend dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Build and publish release
+      - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
+        id: tauri_build
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -92,10 +88,39 @@ jobs:
         with:
           tagName: ${{ steps.bump.outputs.TAG }}
           releaseName: 'Markd ${{ steps.bump.outputs.TAG }}'
-          releaseBody: |
-            ## Markd ${{ steps.bump.outputs.TAG }}
-
-            Atualização publicada automaticamente.
+          releaseBody: 'Atualização do Markd ${{ steps.bump.outputs.TAG }}'
           releaseDraft: false
           prerelease: false
           args: '--target x86_64-pc-windows-msvc'
+
+      # Prepara arquivos do auto-updater para GitHub Pages (privado)
+      - name: Prepare GitHub Pages Deployment
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path public-updater
+          
+          # Copia os arquivos de bundle e assinaturas gerados pelo Tauri
+          $bundlePath = "src-tauri/target/x86_64-pc-windows-msvc/release/bundle"
+          Get-ChildItem -Path $bundlePath -Recurse -Include *.zip, *.sig, *.json | Copy-Item -Destination public-updater -Force
+
+          # Se existir latest.json, ajusta URLs para apontar para o GitHub Pages
+          if (Test-Path "public-updater/latest.json") {
+            $json = Get-Content public-updater/latest.json -Raw | ConvertFrom-Json
+            # Atualiza url do pacote para o dominio gh-pages
+            $baseUrl = "https://diegodesenaesilva-bit.github.io/markd"
+            $json.platforms | Get-Member -MemberType NoteProperty | ForEach-Object {
+              $prop = $_.Name
+              $origUrl = $json.platforms.$prop.url
+              $fileName = [System.IO.Path]::GetFileName($origUrl)
+              $json.platforms.$prop.url = "$baseUrl/$fileName"
+            }
+            $json | ConvertTo-Json -Depth 10 | Set-Content public-updater/latest.json
+          }
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public-updater
+          publish_branch: gh-pages
+          force_orphan: true
