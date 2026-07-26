@@ -37,7 +37,7 @@ jobs:
         run: npm install --legacy-peer-deps
 
       - name: Build Tauri Application
-        run: npx tauri build --target x86_64-pc-windows-msvc
+        run: npx tauri build --target x86_64-pc-windows-msvc --no-sign
 
       - name: Publish Release to GitHub
         uses: softprops/action-gh-release@v2
