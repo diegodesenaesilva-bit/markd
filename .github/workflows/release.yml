@@ -1,7 +1,5 @@
 name: Release Markd
 
-# Dispara APENAS quando uma Tag de versão é criada (ex: v0.1.7)
-# ou manualmente pelo botão 'Run workflow' nas Actions do GitHub
 on:
   push:
     tags:

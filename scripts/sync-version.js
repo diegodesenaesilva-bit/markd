@@ -31,7 +31,10 @@ const projectRoot = join(__dirname, "..");
  */
 function readJsonFile(filePath) {
   try {
-    const content = readFileSync(filePath, "utf-8");
+    let content = readFileSync(filePath, "utf-8");
+    if (content.charCodeAt(0) === 0xFEFF) {
+      content = content.slice(1);
+    }
     return JSON.parse(content);
   } catch (error) {
     console.error(`Error reading ${filePath}:`, error.message);

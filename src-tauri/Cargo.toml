@@ -1,4 +1,4 @@
-﻿[package]
+[package]
 name = "Markd"
 version = "0.1.6"
 description = "Local-first markdown notes"
