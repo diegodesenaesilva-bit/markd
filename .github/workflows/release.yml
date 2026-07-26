@@ -99,4 +99,6 @@ jobs:
             Atualização lançada automaticamente pelo GitHub Actions.
           releaseDraft: false
           prerelease: false
+          packageManager: npm
+          tauriScript: npx tauri
           args: '--target x86_64-pc-windows-msvc'
