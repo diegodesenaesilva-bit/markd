@@ -76,19 +76,11 @@ jobs:
       - name: Install frontend dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Setup Signing Key File
-        id: key_setup
-        shell: powershell
-        run: |
-          $keyContent = "untrusted comment: rsign encrypted secret key`nRWRTY0IyFfgMUpeiYexiguyOtqcC9yxkBZFC0V1EsKGqvpLF1N8AABAAAAAAAAAAAAIAAAAAaHsPP9dDAuNWjvx/T0oYpbHXEOmIPABwzzhRkDZRPtSTf1HpwndTix1CpHhTc6bOU9jnVbtrVnZU7bWUyqM5kFodykjvGQMsrPzbhA0Ee/dGtE5f6MXcpwS8xxb2PSSWv9JhIVOXB+w="
-          Set-Content -Path "signing.key" -Value $keyContent -NoNewline
-          echo "KEY_PATH=$((Get-Item signing.key).FullName)" >> $env:GITHUB_OUTPUT
-
       - name: Build and publish Tauri Release
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY_PATH: ${{ steps.key_setup.outputs.KEY_PATH }}
+          TAURI_SIGNING_PRIVATE_KEY: "untrusted comment: rsign encrypted secret key`nRWRTY0IyFfgMUpeiYexiguyOtqcC9yxkBZFC0V1EsKGqvpLF1N8AABAAAAAAAAAAAAIAAAAAaHsPP9dDAuNWjvx/T0oYpbHXEOmIPABwzzhRkDZRPtSTf1HpwndTix1CpHhTc6bOU9jnVbtrVnZU7bWUyqM5kFodykjvGQMsrPzbhA0Ee/dGtE5f6MXcpwS8xxb2PSSWv9JhIVOXB+w="
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: "markdkey2026"
         with:
           tagName: ${{ steps.bump.outputs.TAG }}
