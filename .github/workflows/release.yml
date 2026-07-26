@@ -36,16 +36,15 @@ jobs:
       - name: Install frontend dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Build Tauri Application
-        run: npx tauri build --target x86_64-pc-windows-msvc --no-sign
-
-      - name: Publish Release to GitHub
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
-            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/*.msi
-          draft: false
-          prerelease: false
+      - name: Build and publish Tauri Release
+        uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: "markdkey2026"
+        with:
+          releaseDraft: false
+          prerelease: false
+          packageManager: npm
+          tauriScript: npx tauri
+          args: '--target x86_64-pc-windows-msvc'
