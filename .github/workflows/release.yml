@@ -40,9 +40,7 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: |
-            untrusted comment: rsign encrypted secret key
-            RWRTY0IyFfgMUpeiYexiguyOtqcC9yxkBZFC0V1EsKGqvpLF1N8AABAAAAAAAAAAAAIAAAAAaHsPP9dDAuNWjvx/T0oYpbHXEOmIPABwzzhRkDZRPtSTf1HpwndTix1CpHhTc6bOU9jnVbtrVnZU7bWUyqM5kFodykjvGQMsrPzbhA0Ee/dGtE5f6MXcpwS8xxb2PSSWv9JhIVOXB+w=
+          TAURI_SIGNING_PRIVATE_KEY: "dW50cnVzdGVkIGNvbW1lbnQ6IHJzaWduIGVuY3J5cHRlZCBzZWNyZXQga2V5ClJXUlRZMEl5RmZnTVVwZWlZZXhpZ3V5T3RxY0M5eXhrQlpGQzBWMUVzS0dxdnBMRjFOOEFBQkFBQUFBQUFBQUFBQUlBQUFBQWFIc1BQOWREQXVOV2p2eC9UMG9ZcGJIWEVPbUlQQUJ3enpoUmtEWlJQdFNUZjFIcHduZFRpeDFDcEhoVGM2Yk9VOWpuVmJ0clZuWlU3YldVeXFNNWtGb2R5a2p2R1FNc3JQemJoQTBFZS9kR3RFNWY2TVhjcHdTOHh4YjJQU1NXdjlKaElWT1hCK3c9Cg=="
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: "markdkey2026"
         with:
           releaseDraft: false
