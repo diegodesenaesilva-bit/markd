@@ -36,18 +36,16 @@ jobs:
       - name: Install frontend dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Set Signing Key Environment Variable
-        run: |
-          node -e "const fs = require('fs'); const key = Buffer.from('dW50cnVzdGVkIGNvbW1lbnQ6IHJzaWduIGVuY3J5cHRlZCBzZWNyZXQga2V5ClJXUlRZMEl5RmZnTVVwZWlZZXhpZ3V5T3RxY0M5eXhrQlpGQzBWMUVzS0dxdnBMRjFOOEFBQkFBQUFBQUFBQUFBQUlBQUFBQWFIc1BQOWREQXVOV2p2eC9UMG9ZcGJIWEVPbUlQQUJ3enpoUmtEWlJQdFNUZjFIcHduZFRpeDFDcEhoVGM2Yk9VOWpuVmJ0clZuWlU3YldVeXFNNWtGb2R5a2p2R1FNc3JQemJoQTBFZS9kR3RFNWY2TVhjcHdTOHh4YjJQU1NXdjlKaElWT1hCK3c9Cg==', 'base64').toString('utf8'); fs.appendFileSync(process.env.GITHUB_ENV, 'TAURI_SIGNING_PRIVATE_KEY<<EOF\n' + key + '\nEOF\n', 'utf8');"
+      - name: Build Tauri Application
+        run: npx tauri build --target x86_64-pc-windows-msvc
 
-      - name: Build and publish Tauri Release
-        uses: tauri-apps/tauri-action@v0
+      - name: Publish Release to GitHub
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/*.msi
+          draft: false
+          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: "markdkey2026"
-        with:
-          releaseDraft: false
-          prerelease: false
-          packageManager: npm
-          tauriScript: npx tauri
-          args: '--target x86_64-pc-windows-msvc'
