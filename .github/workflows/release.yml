@@ -36,11 +36,14 @@ jobs:
       - name: Install frontend dependencies
         run: npm install --legacy-peer-deps
 
+      - name: Decode signing key
+        run: node -e "const fs = require('fs'); const keyBase64 = 'dW50cnVzdGVkIGNvbW1lbnQ6IHJzaWduIGVuY3J5cHRlZCBzZWNyZXQga2V5ClJXUlRZMEl5RmZnTVVwZWlZZXhpZ3V5T3RxY0M5eXhrQlpGQzBWMUVzS0dxdnBMRjFOOEFBQkFBQUFBQUFBQUFBQUlBQUFBQWFIc1BQOWREQXVOV2p2eC9UMG9ZcGJIWEVPbUlQQUJ3enpoUmtEWlJQdFNUZjFIcHduZFRpeDFDcEhoVGM2Yk9VOWpuVmJ0clZuWlU3YldVeXFNNWtGb2R5a2p2R1FNc3JQemJoQTBFZS9kR3RFNWY2TVhjcHdTOHh4YjJQU1NXdjlKaElWT1hCK3c9Cg=='; fs.writeFileSync('src-tauri/markd.key', Buffer.from(keyBase64, 'base64').toString('utf8'), 'utf8');"
+
       - name: Build and publish Tauri Release
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: "dW50cnVzdGVkIGNvbW1lbnQ6IHJzaWduIGVuY3J5cHRlZCBzZWNyZXQga2V5ClJXUlRZMEl5RmZnTVVwZWlZZXhpZ3V5T3RxY0M5eXhrQlpGQzBWMUVzS0dxdnBMRjFOOEFBQkFBQUFBQUFBQUFBQUlBQUFBQWFIc1BQOWREQXVOV2p2eC9UMG9ZcGJIWEVPbUlQQUJ3enpoUmtEWlJQdFNUZjFIcHduZFRpeDFDcEhoVGM2Yk9VOWpuVmJ0clZuWlU3YldVeXFNNWtGb2R5a2p2R1FNc3JQemJoQTBFZS9kR3RFNWY2TVhjcHdTOHh4YjJQU1NXdjlKaElWT1hCK3c9Cg=="
+          TAURI_SIGNING_PRIVATE_KEY_PATH: "src-tauri/markd.key"
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: "markdkey2026"
         with:
           releaseDraft: false
