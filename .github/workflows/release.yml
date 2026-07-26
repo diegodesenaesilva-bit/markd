@@ -37,12 +37,8 @@ jobs:
         run: npm install --legacy-peer-deps
 
       - name: Set Signing Key Environment Variable
-        shell: powershell
         run: |
-          $key = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String("dW50cnVzdGVkIGNvbW1lbnQ6IHJzaWduIGVuY3J5cHRlZCBzZWNyZXQga2V5ClJXUlRZMEl5RmZnTVVwZWlZZXhpZ3V5T3RxY0M5eXhrQlpGQzBWMUVzS0dxdnBMRjFOOEFBQkFBQUFBQUFBQUFBQUlBQUFBQWFIc1BQOWREQXVOV2p2eC9UMG9ZcGJIWEVPbUlQQUJ3enpoUmtEWlJQdFNUZjFIcHduZFRpeDFDcEhoVGM2Yk9VOWpuVmJ0clZuWlU3YldVeXFNNWtGb2R5a2p2R1FNc3JQemJoQTBFZS9kR3RFNWY2TVhjcHdTOHh4YjJQU1NXdjlKaElWT1hCK3c9Cg=="))
-          Add-Content -Path $env:GITHUB_ENV -Value "TAURI_SIGNING_PRIVATE_KEY<<EOF"
-          Add-Content -Path $env:GITHUB_ENV -Value $key
-          Add-Content -Path $env:GITHUB_ENV -Value "EOF"
+          node -e "const fs = require('fs'); const key = Buffer.from('dW50cnVzdGVkIGNvbW1lbnQ6IHJzaWduIGVuY3J5cHRlZCBzZWNyZXQga2V5ClJXUlRZMEl5RmZnTVVwZWlZZXhpZ3V5T3RxY0M5eXhrQlpGQzBWMUVzS0dxdnBMRjFOOEFBQkFBQUFBQUFBQUFBQUlBQUFBQWFIc1BQOWREQXVOV2p2eC9UMG9ZcGJIWEVPbUlQQUJ3enpoUmtEWlJQdFNUZjFIcHduZFRpeDFDcEhoVGM2Yk9VOWpuVmJ0clZuWlU3YldVeXFNNWtGb2R5a2p2R1FNc3JQemJoQTBFZS9kR3RFNWY2TVhjcHdTOHh4YjJQU1NXdjlKaElWT1hCK3c9Cg==', 'base64').toString('utf8'); fs.appendFileSync(process.env.GITHUB_ENV, 'TAURI_SIGNING_PRIVATE_KEY<<EOF\n' + key + '\nEOF\n', 'utf8');"
 
       - name: Build and publish Tauri Release
         uses: tauri-apps/tauri-action@v0
