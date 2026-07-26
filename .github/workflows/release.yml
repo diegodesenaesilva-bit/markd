@@ -24,7 +24,7 @@ jobs:
         with:
           node-version: '20'
 
-      # Auto-incrementa versão patch (ex: 0.1.6 → 0.1.7)
+      # Auto-incrementa versão patch (ex: 0.1.6 → 0.1.7) com encodamento UTF-8 correto
       - name: Bump patch version
         id: bump
         shell: powershell
@@ -41,18 +41,19 @@ jobs:
 
           $raw = Get-Content src-tauri/tauri.conf.json -Raw
           $raw = $raw -replace '"version": "' + $current + '"', '"version": "' + $newVersion + '"'
-          Set-Content src-tauri/tauri.conf.json $raw -NoNewline
+          [System.IO.File]::WriteAllText((Get-Item src-tauri/tauri.conf.json).FullName, $raw, [System.Text.Encoding]::UTF8)
 
           $pkg = Get-Content package.json -Raw
           $pkg = $pkg -replace '"version": "' + $current + '"', '"version": "' + $newVersion + '"'
-          Set-Content package.json $pkg -NoNewline
+          [System.IO.File]::WriteAllText((Get-Item package.json).FullName, $pkg, [System.Text.Encoding]::UTF8)
 
           $cargo = Get-Content src-tauri/Cargo.toml -Raw
           $cargo = $cargo -replace 'version = "' + $current + '"', 'version = "' + $newVersion + '"'
-          Set-Content src-tauri/Cargo.toml $cargo -NoNewline
+          [System.IO.File]::WriteAllText((Get-Item src-tauri/Cargo.toml).FullName, $cargo, [System.Text.Encoding]::UTF8)
 
-          echo "VERSION=$newVersion" >> $env:GITHUB_OUTPUT
-          echo "TAG=v$newVersion" >> $env:GITHUB_OUTPUT
+          # UTF-8 seguro para GITHUB_OUTPUT no PowerShell do Windows
+          "VERSION=$newVersion" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "TAG=v$newVersion" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
       - name: Commit version bump
         shell: powershell
