@@ -22,7 +22,10 @@ import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
-  BacklinksSidebar,
+  UnifiedRightSidebar,
+} from "@/components/editor/UnifiedRightSidebar";
+import { Sparkles } from "lucide-react";
+import {
   BacklinksToggle,
 } from "@/components/editor/BacklinksSidebar";
 import { NoteBreadcrumb } from "@/components/editor/NoteBreadcrumb";
@@ -70,10 +73,13 @@ export function AppShell() {
   const view = useVault((s) => s.view);
   const root = useVault((s) => s.root);
   const sidebarHidden = useUi((s) => s.sidebarHidden);
-  const backlinksHidden = useUi((s) => s.backlinksHidden);
   const markdownSource = useUi((s) => s.markdownSource);
+  const rightSidebarOpen = useUi((s) => s.rightSidebarOpen);
+  const rightSidebarTab = useUi((s) => s.rightSidebarTab);
+  const setRightSidebarOpen = useUi((s) => s.setRightSidebarOpen);
+  const setRightSidebarTab = useUi((s) => s.setRightSidebarTab);
+  const toggleRightSidebar = useUi((s) => s.toggleRightSidebar);
   const toggleSidebar = useUi((s) => s.toggleSidebar);
-  const toggleBacklinks = useUi((s) => s.toggleBacklinks);
   const toggleMarkdownSource = useUi((s) => s.toggleMarkdownSource);
   const createBookmarkTag = useBookmarks((s) => s.createTag);
   const exportBookmarks = useBookmarks((s) => s.exportAll);
@@ -205,9 +211,27 @@ export function AppShell() {
           <LayoutGroup>
             <div className="ml-auto flex items-center gap-2">
               {view?.type === "note" && (
+                <Tooltip label="Peça ao Mark (IA ✨)" side="bottom">
+                  <button
+                    type="button"
+                    aria-pressed={rightSidebarOpen && rightSidebarTab === "ask_mark"}
+                    onClick={() => toggleRightSidebar("ask_mark")}
+                    className={cx(
+                      "flex h-7 items-center gap-1.5 rounded-md border px-2 text-xs font-semibold transition-[color,background-color,border-color,transform] duration-100 active:scale-[0.96]",
+                      rightSidebarOpen && rightSidebarTab === "ask_mark"
+                        ? "border-purple-500 bg-purple-600 text-white"
+                        : "border-line-soft bg-hover text-muted hover:bg-active hover:text-ink"
+                    )}
+                  >
+                    <Sparkles size={13} className={rightSidebarOpen && rightSidebarTab === "ask_mark" ? "text-white" : "text-purple-500"} />
+                    <span>Peça ao Mark</span>
+                  </button>
+                </Tooltip>
+              )}
+              {view?.type === "note" && (
                 <BacklinksToggle
-                  open={!backlinksHidden}
-                  onToggle={toggleBacklinks}
+                  open={rightSidebarOpen && rightSidebarTab === "linked_mentions"}
+                  onToggle={() => toggleRightSidebar("linked_mentions")}
                 />
               )}
               {view?.type === "note" && (
@@ -402,10 +426,12 @@ export function AppShell() {
         </div>
       </main>
 
-      <BacklinksSidebar
+      <UnifiedRightSidebar
         rel={view?.type === "note" ? view.rel : null}
-        open={!backlinksHidden}
-        onClose={toggleBacklinks}
+        open={rightSidebarOpen}
+        activeTab={rightSidebarTab}
+        onTabChange={setRightSidebarTab}
+        onClose={() => setRightSidebarOpen(false)}
       />
     </div>
   );
