@@ -76,11 +76,29 @@ jobs:
       - name: Install frontend dependencies
         run: npm install --legacy-peer-deps
 
+      # Prepara a chave privada (descodifica se estiver em base64)
+      - name: Setup Signing Key
+        id: key_setup
+        shell: powershell
+        run: |
+          $rawKey = @"
+          ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          "@.Trim()
+
+          if ($rawKey.StartsWith("dW50")) {
+            $bytes = [System.Convert]::FromBase64String($rawKey)
+            $decoded = [System.Text.Encoding]::UTF8.GetString($bytes)
+            Set-Content -Path "signing.key" -Value $decoded -NoNewline
+          } else {
+            Set-Content -Path "signing.key" -Value $rawKey -NoNewline
+          }
+          echo "KEY_PATH=$((Get-Item signing.key).FullName)" >> $env:GITHUB_OUTPUT
+
       - name: Build and publish Tauri Release
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PATH: ${{ steps.key_setup.outputs.KEY_PATH }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: ${{ steps.bump.outputs.TAG }}
